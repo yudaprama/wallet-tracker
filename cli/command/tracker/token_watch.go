@@ -172,14 +172,15 @@ func runWatchCycle(db *sql.DB, apiKey, contractAddress string, addresses []strin
 		return err
 	}
 
-	changes := repository.BuildTokenBalanceChanges(previousBatch, currentBatch, previousSnapshots, currentSnapshots)
-	changes = filterTokenBalanceChanges(changes, direction)
+	allChanges := repository.BuildTokenBalanceChanges(previousBatch, currentBatch, previousSnapshots, currentSnapshots)
+	changes := filterTokenBalanceChanges(allChanges, direction)
 	if top > 0 && len(changes) > top {
 		changes = changes[:top]
 	}
 
 	fmt.Printf("previous batch: %s (%s)\n", previousBatch.BatchID, previousBatch.CapturedAt.Format(timeLayout))
 	fmt.Printf("current batch:  %s (%s)\n", currentBatch.BatchID, currentBatch.CapturedAt.Format(timeLayout))
+	printTokenDiffSummary(allChanges)
 	printTokenDiffTable(changes)
 
 	return nil

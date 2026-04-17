@@ -77,8 +77,8 @@ func startTokenDiff(cmd *cobra.Command, _ []string) error {
 		return err
 	}
 
-	changes := repository.BuildTokenBalanceChanges(previousBatch, currentBatch, previousSnapshots, currentSnapshots)
-	changes = filterTokenBalanceChanges(changes, direction)
+	allChanges := repository.BuildTokenBalanceChanges(previousBatch, currentBatch, previousSnapshots, currentSnapshots)
+	changes := filterTokenBalanceChanges(allChanges, direction)
 
 	if top > 0 && len(changes) > top {
 		changes = changes[:top]
@@ -92,7 +92,7 @@ func startTokenDiff(cmd *cobra.Command, _ []string) error {
 	case "table":
 		fmt.Printf("previous batch: %s (%s)\n", previousBatch.BatchID, previousBatch.CapturedAt.Format(timeLayout))
 		fmt.Printf("current batch:  %s (%s)\n", currentBatch.BatchID, currentBatch.CapturedAt.Format(timeLayout))
-		printTokenDiffSummary(changes)
+		printTokenDiffSummary(allChanges)
 		printTokenDiffTable(changes)
 		return nil
 	default:
@@ -102,9 +102,26 @@ func startTokenDiff(cmd *cobra.Command, _ []string) error {
 
 const timeLayout = "2006-01-02 15:04:05 MST"
 
+const (
+	colorGreen = "\033[32m"
+	colorRed   = "\033[31m"
+	colorReset = "\033[0m"
+)
+
+func directionLabel(direction string) string {
+	switch direction {
+	case "increase":
+		return colorGreen + "BUY" + colorReset
+	case "decrease":
+		return colorRed + "SELL" + colorReset
+	default:
+		return "—"
+	}
+}
+
 func filterTokenBalanceChanges(changes []repository.TokenBalanceChange, direction string) []repository.TokenBalanceChange {
 	if direction == "" || direction == "all" {
-		return orderTokenBalanceChanges(changes)
+		return orderTokenBalanceChanges(excludeUnchangedChanges(changes))
 	}
 
 	filtered := make([]repository.TokenBalanceChange, 0, len(changes))
@@ -122,6 +139,16 @@ func filterTokenBalanceChanges(changes []repository.TokenBalanceChange, directio
 	}
 
 	return orderTokenBalanceChanges(filtered)
+}
+
+func excludeUnchangedChanges(changes []repository.TokenBalanceChange) []repository.TokenBalanceChange {
+	filtered := make([]repository.TokenBalanceChange, 0, len(changes))
+	for _, change := range changes {
+		if change.Direction != "unchanged" {
+			filtered = append(filtered, change)
+		}
+	}
+	return filtered
 }
 
 func orderTokenBalanceChanges(changes []repository.TokenBalanceChange) []repository.TokenBalanceChange {
@@ -183,9 +210,9 @@ func printTokenDiffSummary(changes []repository.TokenBalanceChange) {
 	}
 
 	fmt.Printf(
-		"summary: %d increase, %d decrease, %d unchanged | inflow %s | outflow -%s | net %s\n",
-		increaseCount,
-		decreaseCount,
+		"summary: %s%s%s %d increase, %s%s%s %d decrease, %d unchanged | inflow %s | outflow -%s | net %s\n",
+		colorGreen, "▴", colorReset, increaseCount,
+		colorRed, "▾", colorReset, decreaseCount,
 		unchangedCount,
 		repository.FormatCompactSignedTokenQuantity(increaseTotal.String(), decimals),
 		repository.FormatCompactTokenQuantity(decreaseTotal.String(), decimals),
@@ -195,17 +222,24 @@ func printTokenDiffSummary(changes []repository.TokenBalanceChange) {
 
 func printTokenDiffTable(changes []repository.TokenBalanceChange) {
 	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	_, _ = fmt.Fprintln(writer, "RANK\tADDRESS\tPREVIOUS\tCURRENT\tDELTA\tDIRECTION")
+	_, _ = fmt.Fprintln(writer, "RANK\tADDRESS\tPREVIOUS\tCURRENT\tDELTA\tACTION")
 	for index, change := range changes {
+		deltaColor := colorReset
+		if change.Direction == "increase" {
+			deltaColor = colorGreen
+		} else if change.Direction == "decrease" {
+			deltaColor = colorRed
+		}
+
 		_, _ = fmt.Fprintf(
 			writer,
-			"%d\t%s\t%s\t%s\t%s\t%s\n",
+			"%d\t%s\t%s\t%s\t%s%s%s\t%s\n",
 			index+1,
 			change.WalletAddress,
 			change.PreviousBalance,
 			change.CurrentBalance,
-			change.Delta,
-			change.Direction,
+			deltaColor, change.Delta, colorReset,
+			directionLabel(change.Direction),
 		)
 	}
 	_ = writer.Flush()

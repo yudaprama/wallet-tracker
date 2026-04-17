@@ -1,2 +1,5 @@
 .idea/
 dist/
+data/token-tracker.sqlite
+.claude/settings.local.json
+data/token-tracker.sqlite
