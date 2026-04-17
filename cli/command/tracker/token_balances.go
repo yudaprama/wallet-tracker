@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"text/tabwriter"
 
+	"github.com/aquasecurity/table"
 	"github.com/aydinnyunus/wallet-tracker/cli/command/repository"
 	"github.com/spf13/cobra"
 )
@@ -126,17 +126,17 @@ func startTokenBalances(cmd *cobra.Command, _ []string) error {
 }
 
 func printTokenBalancesTable(balances []repository.EtherscanTokenBalance) {
-	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	_, _ = fmt.Fprintln(writer, "RANK\tADDRESS\tBALANCE\tRAW")
+	t := table.New(os.Stdout)
+	t.SetHeaders("RANK", "ADDRESS", "BALANCE", "RAW")
+
 	for index, balance := range balances {
-		_, _ = fmt.Fprintf(
-			writer,
-			"%d\t%s\t%s\t%s\n",
-			index+1,
+		t.AddRow(
+			fmt.Sprintf("%d", index+1),
 			balance.Address,
 			balance.Quantity,
 			balance.QuantityRaw,
 		)
 	}
-	_ = writer.Flush()
+
+	t.Render()
 }

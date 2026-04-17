@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"text/tabwriter"
 	"time"
 
+	"github.com/aquasecurity/table"
 	"github.com/aydinnyunus/wallet-tracker/cli/command/repository"
 	"github.com/spf13/cobra"
 )
@@ -119,10 +119,12 @@ func printTokenBalancesPreview(balances []repository.EtherscanTokenBalance, top 
 		balances = balances[:top]
 	}
 
-	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	_, _ = fmt.Fprintln(writer, "RANK\tADDRESS\tBALANCE")
+	t := table.New(os.Stdout)
+	t.SetHeaders("RANK", "ADDRESS", "BALANCE")
+
 	for index, balance := range balances {
-		_, _ = fmt.Fprintf(writer, "%d\t%s\t%s\n", index+1, balance.Address, balance.Quantity)
+		t.AddRow(fmt.Sprintf("%d", index+1), balance.Address, balance.Quantity)
 	}
-	_ = writer.Flush()
+
+	t.Render()
 }

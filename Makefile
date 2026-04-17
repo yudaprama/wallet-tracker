@@ -47,7 +47,7 @@ token-diff:
 	go run $(MAIN) tracker token-diff --contract $(CONTRACT)
 
 token-watch:
-	go run $(MAIN) tracker token-watch --contract $(CONTRACT) --addresses "$(ADDRESSES)" --addresses-file $(ADDRESSES_FILE) --interval $(INTERVAL) --iterations $(ITERATIONS)
+	./wallet-tracker tracker token-watch --contract $(CONTRACT) --addresses "$(ADDRESSES)" --addresses-file $(ADDRESSES_FILE) --interval $(INTERVAL) --iterations $(ITERATIONS)
 
 build:
 	go build -o $(APP) $(MAIN)

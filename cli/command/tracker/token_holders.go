@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"text/tabwriter"
 
+	"github.com/aquasecurity/table"
 	"github.com/aydinnyunus/wallet-tracker/cli/command/repository"
 	"github.com/spf13/cobra"
 )
@@ -79,17 +79,17 @@ func startTokenHolders(cmd *cobra.Command, _ []string) error {
 }
 
 func printTokenHoldersTable(holders []repository.EtherscanTokenHolder) {
-	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	_, _ = fmt.Fprintln(writer, "RANK\tADDRESS\tQUANTITY\tTYPE")
+	t := table.New(os.Stdout)
+	t.SetHeaders("RANK", "ADDRESS", "QUANTITY", "TYPE")
+
 	for index, holder := range holders {
-		_, _ = fmt.Fprintf(
-			writer,
-			"%d\t%s\t%s\t%s\n",
-			index+1,
+		t.AddRow(
+			fmt.Sprintf("%d", index+1),
 			holder.TokenHolderAddress,
 			holder.TokenHolderQuantity,
 			holder.TokenHolderAddressType,
 		)
 	}
-	_ = writer.Flush()
+
+	t.Render()
 }

@@ -6,8 +6,8 @@ import (
 	"math/big"
 	"os"
 	"sort"
-	"text/tabwriter"
 
+	"github.com/aquasecurity/table"
 	"github.com/aydinnyunus/wallet-tracker/cli/command/repository"
 	"github.com/spf13/cobra"
 )
@@ -245,28 +245,28 @@ func printTokenDiffSummary(changes []repository.TokenBalanceChange) {
 }
 
 func printTokenDiffTable(changes []repository.TokenBalanceChange) {
-	writer := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	_, _ = fmt.Fprintln(writer, "RANK\tADDRESS\tPREVIOUS\tCURRENT\tDELTA\tACTION")
+	t := table.New(os.Stdout)
+	t.SetHeaders("RANK", "ADDRESS", "PREVIOUS", "CURRENT", "DELTA", "ACTION")
+
 	for index, change := range changes {
-		deltaColor := colorReset
+		delta := change.Delta
 		if change.Direction == "increase" {
-			deltaColor = colorGreen
+			delta = colorGreen + change.Delta + colorReset
 		} else if change.Direction == "decrease" {
-			deltaColor = colorRed
+			delta = colorRed + change.Delta + colorReset
 		}
 
-		_, _ = fmt.Fprintf(
-			writer,
-			"%d\t%s\t%s\t%s\t%s%s%s\t%s\n",
-			index+1,
+		t.AddRow(
+			fmt.Sprintf("%d", index+1),
 			getAddressLabel(change.WalletAddress),
 			change.PreviousBalance,
 			change.CurrentBalance,
-			deltaColor, change.Delta, colorReset,
+			delta,
 			directionLabel(change.Direction),
 		)
 	}
-	_ = writer.Flush()
+
+	t.Render()
 }
 
 func parseBigInt(value string) *big.Int {
