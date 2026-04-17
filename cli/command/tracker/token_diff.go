@@ -108,6 +108,30 @@ const (
 	colorReset = "\033[0m"
 )
 
+var addressLabels = loadAddressLabels()
+
+func loadAddressLabels() map[string]string {
+	labels := make(map[string]string)
+
+	data, err := os.ReadFile("data/labels.json")
+	if err != nil {
+		return labels
+	}
+
+	if err := json.Unmarshal(data, &labels); err != nil {
+		return labels
+	}
+
+	return labels
+}
+
+func getAddressLabel(address string) string {
+	if label, ok := addressLabels[address]; ok {
+		return label
+	}
+	return address
+}
+
 func directionLabel(direction string) string {
 	switch direction {
 	case "increase":
@@ -235,7 +259,7 @@ func printTokenDiffTable(changes []repository.TokenBalanceChange) {
 			writer,
 			"%d\t%s\t%s\t%s\t%s%s%s\t%s\n",
 			index+1,
-			change.WalletAddress,
+			getAddressLabel(change.WalletAddress),
 			change.PreviousBalance,
 			change.CurrentBalance,
 			deltaColor, change.Delta, colorReset,
